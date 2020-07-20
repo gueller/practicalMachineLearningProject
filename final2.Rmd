@@ -1,0 +1,217 @@
+---
+title: "finalComplete"
+author: "Gueller"
+date: "7/20/2020"
+output: html_document
+---
+
+## Overview
+
+In this assignment, we will use data collected as part of a Human Activity Recognition (HAR) $^1$ study and use machine learning to determine how effective the data collected is for prediction of the quality of how the exercise activity is being performed.
+
+The activity is "Unilaterial Dumbbell Biceps Curl".  Each participant was asked to perform 10 repetitions, 5 different methods.  Essentially, one method was correct, the other four were incorrect in a defined manner.  The manner in which the activity was completed is captured in the "classe" field; the definitions of the classe categorizations is shown in the Appendix.$^2$
+
+## Executive Summary
+
+Three models (Decision Tree, Random Forest and Generalized Boosted Method) we applied against the cleaned data.  Cross-validation found that the Random Forest provided the most accurate prediction for the given data.
+
+## Setting the Environment
+```{r setup, echo=TRUE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+# Always set the seed
+set.seed(1994)
+# Libraries
+library(caret)
+library(rpart)
+library(rattle)
+library(randomForest)
+library(knitr)
+library(corrplot)
+library(RColorBrewer)
+library(kableExtra)
+```
+
+## Loading, Cleaning and Arranging the Data
+```{r gettingTheData, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+# locations of the data
+trainURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+# read the data in
+training <- read.csv(url(trainURL))
+testing <- read.csv(url(testURL))
+dim(testing)
+```
+We will be working with the training set for now, holding out the testing set for the quiz.
+
+Exploration of the data set using head revealed that the first  7 columns of the data are identifiers that will be removed. Using the is.na function revealed that a number of the fields were almost entirely NA (97.9%), and those will be removed as well, exploration of the data is in the Appendix. 
+
+```{r removeIdentAndNA, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+# capture the exploration and print output in the Appendix
+headUC <- head(training, 2)
+naUC <- sapply(training, function(x) sum(is.na(x)))
+# Remove Identifiers
+training <- training[,-(1:7)]
+dim(training)
+# Remvove NA's
+remNA <- sapply(training, function(x) sum(is.na(x))) > 0
+training <- training[,remNA==FALSE]
+dim(training)
+```
+
+The near zero variance variables will be identified and removed.
+
+```{r nearZeroVariance, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+nearZero <- nearZeroVar(training)
+# nearZero
+training <- training[,-nearZero]
+dim(training)
+```
+
+The testing set will be broken into trainSet and testSet.
+
+```{r partionTraining, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+# Break the training set into training and test
+inTrain <-createDataPartition(training$classe, p=0.7, list=FALSE)
+trainSet <- training[inTrain,]
+testSet <- training[-inTrain,]
+dim(trainSet);dim(testSet)
+# set classe as.factor
+trainSet$classe <- as.factor(trainSet$classe)
+testSet$classe <- as.factor(testSet$classe)
+```
+
+## Correlation Analysis
+
+We will look at the number of highly correlated variables to see if a Principal Component Analysis (PCA) should be done.
+
+##### fig. 1 - Correlation Table
+
+```{r correlationMatrix, echo=TRUE, message=FALSE, warning=FALSE, out.width="75%", out.height="75%", fig.height=12, fig.width=10, fig.align='left', cache=TRUE}
+correlationMatrix <- cor(trainSet[,-53])
+corrplot(correlationMatrix, order="FPC", method="color", type="lower",
+    tl.cex=0.6, tl.col=rgb(0,0,0))
+```
+
+From the graph, there appears to be a number of $^+_-$highly correlated variables.  If PCA is performed, interptretability will be lost and will not be performed.  
+
+PCA will be explored if scalability of the select model becomes necessary.
+
+## Modeling
+
+Three models will be build with the trainSet data; Decision Tree, Random Forest and Generalized Boosted.  The models will be build and cross-validated with the testSet.  The model that has the highest accuracy while considering the kappa score will be used against the testing. 
+
+#### Decision Tree
+
+##### fig 2. - Decision Tree
+```{r modelDecisionTree, echo=TRUE, message=FALSE, warning=FALSE, fig.width=10, fig.height=6, fig.align='left', cache=TRUE}
+mdl_dt <- rpart(classe~., data=trainSet, method="class")
+fancyRpartPlot(mdl_dt, sub="", palettes=c("Reds", "Greys"))
+```
+
+```{r predictDecisionTree, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+prd_dt <- predict(mdl_dt, newdata=testSet, type="class")
+cm_dt <- confusionMatrix(prd_dt, testSet$classe)
+cm_dt
+acc_dt <- round(cm_dt$overall['Accuracy'],4)
+kap_dt <- round(cm_dt$overall['Kappa'],4)
+```
+
+#### Random Forest
+
+```{r modelRandomForest, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+set.seed(1994)
+ctrl_rf <- trainControl(method="cv", number=3, verboseIter=FALSE)
+mdl_rf <- train(classe~., data=trainSet, method="rf",
+    trControl=ctrl_rf)
+mdl_rf$finalModel
+```
+
+```{r predictRandomForest, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+prd_rf <- predict(mdl_rf, newdata=testSet)
+cm_rf <- confusionMatrix(prd_rf, testSet$classe)
+cm_rf
+acc_rf <- round(cm_rf$overall['Accuracy'],4)
+kap_rf <- round(cm_rf$overall['Kappa'],4)
+```
+
+#### Generalized Boosted Method
+
+```{r modelGeneralizedBoostedMethod, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+set.seed(1994)
+ctrl_gbm <- trainControl(method="repeatedcv", number=5, repeats=1)
+mdl_gbm <- train(classe~., data=trainSet, method="gbm",
+    trControl=ctrl_gbm, verbose=FALSE)
+mdl_gbm$finalModel
+```
+
+```{r predictGeneralizedBoostedMethod, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
+prd_gbm <- predict(mdl_gbm, newdata=testSet)
+cm_gbm <- confusionMatrix(prd_gbm, testSet$classe)
+cm_gbm
+acc_gbm <- round(cm_gbm$overall['Accuracy'],4)
+kap_gbm <- round(cm_gbm$overall['Kappa'],4)
+```
+
+## Results
+```{r results, echo=TRUE, warning=FALSE, message=FALSE, cache=TRUE}
+result_dt <- as.data.frame(rbind(c(acc_dt,kap_dt)))
+result_rf <- as.data.frame(rbind(c(acc_rf,kap_rf)))
+result_gbm <- as.data.frame(rbind(c(acc_gbm,kap_gbm)))
+tab <- rbind(result_dt, result_rf, result_gbm)
+row.names(tab) <- c("Decision Tree", "Random Forest", "Generalized Boosted Method")
+```
+
+```{r prettyPrintTable, echo=TRUE, warning=FALSE, message=FALSE, cache=TRUE}
+# Pretty output
+kable(tab, "latex", caption="Results") %>%
+    kable_styling(full_width=FALSE, position="left", 
+        latex_options=c("striped","hold_position"), stripe_index=c(2),
+        stripe_color = "yellow")
+```
+
+Based on the Accuracy and Kappa values for each of the models, the Random Forest Model is selected.  Both Accuracy and the Kappa values are higher than the others.
+
+## Predictions for the Quiz
+
+The selected model will be applied to testing data to predict the classe for the 20 rows of data
+
+```{r quizAnswers, echo=TRUE, warning=FALSE, message=FALSE, cache=TRUE}
+prd_quiz <- predict(mdl_rf, newdata=testing)
+prd_quiz
+```
+
+### Appendix
+#### Overview Information:
+
+$^1$ http://groupware.les.inf.puc-rio.br/har , accessed 20 July 2020.
+
+$^2$ "Qualitative Activity Recognition of Weight Lifting Exercises", Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013. http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf , Accessed 20 July 2020
+
+#### Dataset provided by Instructor taken from:
+
+- http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+
+#### Visualization
+
+- The Classe decision tree was plotted using the R Rattle package.
+
+## "classe" Definitions
+
+Class A - Exactly according to the specification
+
+Class B - Throwing the elbows to the front
+
+Class C - Lifting the dumbbell only halfway
+
+Class D - Lowering the dumbbell only halfway
+
+Class E - Throwing the hips to the front
+
+#### Before Cleaning Head and is.na's
+```{r, look at the data, echo=TRUE, warning=FALSE, message=FALSE}
+print("Head Information Before Cleaning:")
+headUC
+print("is.na Information Before Cleaning")
+naUC
+```
