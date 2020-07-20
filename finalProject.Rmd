@@ -6,6 +6,7 @@ output:
   pdf_document: default
   html_document: default
 ---
+
 ## Overview
 
 In this assignment, we will use data collected as part of a Human Activity Recognition (HAR) $^1$ study and use machine learning to determine how effective the data collected is for prediction of the quality of how the exercise activity is being performed.
@@ -45,9 +46,9 @@ dim(testing)
 ```
 We will be working with the training set for now, holding out the testing set for the quiz.
 
-Exploration of the data set using head (shown in the appendix) revealed that the first  7 columns of the data are identifiers that will be removed. Using the is.na function revealed that a number of the fields were almost entirely NA, and those will be removed as well. 
+Exploration of the data set using head revealed that the first  7 columns of the data are identifiers that will be removed. Using the is.na function revealed that a number of the fields were almost entirely NA (97.9%), and those will be removed as well. 
 
-```{r removeIdentAndNA, echo=TRUE, message=FALSE, warning=FALSE}
+```{r removeIdentAndNA, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
 # capture the exploration and print output in the Appendix
 headUC <- head(training, 2)
 naUC <- sapply(training, function(x) sum(is.na(x)))
@@ -55,14 +56,14 @@ naUC <- sapply(training, function(x) sum(is.na(x)))
 training <- training[,-(1:7)]
 dim(training)
 # Remvove NA's
-remNA <- sapply(training, function(x) mean(is.na(x))) > 0.975
+remNA <- sapply(training, function(x) sum(is.na(x))) > 0
 training <- training[,remNA==FALSE]
 dim(training)
 ```
 
 The near zero variance variables will be identified and removed.
 
-```{r nearZeroVariance, echo=TRUE, message=FALSE, warning=FALSE}
+```{r nearZeroVariance, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
 nearZero <- nearZeroVar(training)
 # nearZero
 training <- training[,-nearZero]
@@ -88,7 +89,7 @@ We will look at the number of highly correlated variables to see if a Principal 
 
 ##### fig. 1 - Correlation Table
 
-```{r correlationMatrix, echo=TRUE, message=FALSE, warning=FALSE, out.width="75%", out.height="75%", fig.height=12, fig.width=10, fig.align='left'}
+```{r correlationMatrix, echo=TRUE, message=FALSE, warning=FALSE, out.width="75%", out.height="75%", fig.height=12, fig.width=10, fig.align='left', cache=TRUE}
 correlationMatrix <- cor(trainSet[,-53])
 corrplot(correlationMatrix, order="FPC", method="color", type="lower",
     tl.cex=0.6, tl.col=rgb(0,0,0))
@@ -105,7 +106,7 @@ Three models will be build with the trainSet data; Decision Tree, Random Forest 
 #### Decision Tree
 
 ##### fig 2. - Decision Tree
-```{r modelDecisionTree, echo=TRUE, message=FALSE, warning=FALSE, fig.width=10, fig.height=6, fig.align='left'}
+```{r modelDecisionTree, echo=TRUE, message=FALSE, warning=FALSE, fig.width=10, fig.height=6, fig.align='left', cache=TRUE}
 mdl_dt <- rpart(classe~., data=trainSet, method="class")
 fancyRpartPlot(mdl_dt, sub="", palettes=c("Reds", "Greys"))
 ```
@@ -120,7 +121,7 @@ kap_dt <- round(cm_dt$overall['Kappa'],4)
 
 #### Random Forest
 
-```{r modelRandomForest, echo=TRUE, message=TRUE, warning=TRUE, cache=TRUE}
+```{r modelRandomForest, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
 set.seed(1994)
 ctrl_rf <- trainControl(method="cv", number=3, verboseIter=FALSE)
 mdl_rf <- train(classe~., data=trainSet, method="rf",
@@ -155,7 +156,7 @@ kap_gbm <- round(cm_gbm$overall['Kappa'],4)
 ```
 
 ## Results
-```{r results, echo=TRUE, warning=FALSE, message=FALSE}
+```{r results, echo=TRUE, warning=FALSE, message=FALSE, cache=TRUE}
 result_dt <- as.data.frame(rbind(c(acc_dt,kap_dt)))
 result_rf <- as.data.frame(rbind(c(acc_rf,kap_rf)))
 result_gbm <- as.data.frame(rbind(c(acc_gbm,kap_gbm)))
@@ -163,7 +164,7 @@ tab <- rbind(result_dt, result_rf, result_gbm)
 row.names(tab) <- c("Decision Tree", "Random Forest", "Generalized Boosted Method")
 ```
 
-```{r prettyPrintTable, echo=TRUE, warning=FALSE, message=FALSE}
+```{r prettyPrintTable, echo=TRUE, warning=FALSE, message=FALSE, cache=TRUE}
 # Pretty output
 kable(tab, "latex", caption="Results") %>%
     kable_styling(full_width=FALSE, position="left", 
@@ -177,7 +178,7 @@ Based on the Accuracy and Kappa values for each of the models, the Random Forest
 
 The selected model will be applied to testing data to predict the classe for the 20 rows of data
 
-```{r quizAnswers, echo=TRUE, warning=FALSE, message=FALSE}
+```{r quizAnswers, echo=TRUE, warning=FALSE, message=FALSE, cache=TRUE}
 prd_quiz <- predict(mdl_rf, newdata=testing)
 prd_quiz
 ```
