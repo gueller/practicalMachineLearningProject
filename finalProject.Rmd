@@ -11,7 +11,7 @@ output:
 
 In this assignment, we will use data collected as part of a Human Activity Recognition (HAR) $^1$ study and use machine learning to determine how effective the data collected is for prediction of the quality of how the exercise activity is being performed.
 
-The activity is "Unilaterial Dumbbell Biceps Curl".  Each participant was asked to perform 10 repetitions, 5 different methods.  Essentially, one method was correct, the other four were incorrect in a defined manner.  The manner in which the activity was completed is captured in the "classe" field; the definitions of the classe categorizations is shown in the appendix.$^2$
+The activity is "Unilaterial Dumbbell Biceps Curl".  Each participant was asked to perform 10 repetitions, 5 different methods.  Essentially, one method was correct, the other four were incorrect in a defined manner.  The manner in which the activity was completed is captured in the "classe" field; the definitions of the classe categorizations is shown in the Appendix.$^2$
 
 ## Executive Summary
 
@@ -46,7 +46,7 @@ dim(testing)
 ```
 We will be working with the training set for now, holding out the testing set for the quiz.
 
-Exploration of the data set using head revealed that the first  7 columns of the data are identifiers that will be removed. Using the is.na function revealed that a number of the fields were almost entirely NA (97.9%), and those will be removed as well. 
+Exploration of the data set using head revealed that the first  7 columns of the data are identifiers that will be removed. Using the is.na function revealed that a number of the fields were almost entirely NA (97.9%), and those will be removed as well, exploration of the data is in the Appendix. 
 
 ```{r removeIdentAndNA, echo=TRUE, message=FALSE, warning=FALSE, cache=TRUE}
 # capture the exploration and print output in the Appendix
