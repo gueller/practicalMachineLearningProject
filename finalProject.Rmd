@@ -174,15 +174,6 @@ kable(tab, "latex", caption="Results") %>%
 
 Based on the Accuracy and Kappa values for each of the models, the Random Forest Model is selected.  Both Accuracy and the Kappa values are higher than the others.
 
-## Predictions for the Quiz
-
-The selected model will be applied to testing data to predict the classe for the 20 rows of data
-
-```{r quizAnswers, echo=TRUE, warning=FALSE, message=FALSE, cache=TRUE}
-prd_quiz <- predict(mdl_rf, newdata=testing)
-prd_quiz
-```
-
 ### Appendix
 #### Overview Information:
 
