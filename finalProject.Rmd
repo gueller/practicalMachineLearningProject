@@ -83,20 +83,6 @@ trainSet$classe <- as.factor(trainSet$classe)
 testSet$classe <- as.factor(testSet$classe)
 ```
 
-## Correlation Analysis
-
-We will look at the number of highly correlated variables to see if a Principal Component Analysis (PCA) should be done.
-
-##### fig. 1 - Correlation Table
-
-```{r correlationMatrix, echo=TRUE, message=FALSE, warning=FALSE, out.width="75%", out.height="75%", fig.height=12, fig.width=10, fig.align='left', cache=TRUE}
-correlationMatrix <- cor(trainSet[,-53])
-corrplot(correlationMatrix, order="FPC", method="color", type="lower",
-    tl.cex=0.6, tl.col=rgb(0,0,0))
-```
-
-From the graph, there appears to be a number of $^+_-$highly correlated variables.  If PCA is performed, interptretability will be lost and will not be performed.  
-
 PCA will be explored if scalability of the select model becomes necessary.
 
 ## Modeling
